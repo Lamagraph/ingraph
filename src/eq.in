@@ -1,0 +1,12 @@
+
+
+Add(r, x) >< Z =>
+  r ~ x;
+
+Add(r, x) >< S(y) =>
+  Add(w, x) ~ y,
+  r ~ S(w);
+
+Add(x, S(Z)) ~ Z,
+Add(Add(r, x), S(Z)) ~ Z;
+r; free r;
