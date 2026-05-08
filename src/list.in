@@ -1,0 +1,58 @@
+
+filterAppliedPredicate(r, predicate, x, xs) >< True => r ~ x:ws,
+  ListFilter(ws, predicate) ~ xs;
+filterAppliedPredicate(r, predicate, x, xs) >< False => r ~ ws, x ~ Eraser,
+  ListFilter(ws, predicate) ~ xs;
+
+
+// %predicate !
+ListFilter(r, predicate) >< [] => r ~ [], predicate ~ Eraser;
+ListFilter(r, predicate) >< x:xs =>
+  x ~ Dup(x1, x2),
+  predicate ~ Dup(predicate1, predicate2),
+  predicate1 ~ (isTrue, x1),
+  filterAppliedPredicate(r, predicate2, x2, xs) ~ isTrue;
+
+ListLength(r) >< [] => r ~ 0;
+ListLength(r) >< x:xs =>
+  x ~ Eraser,
+  ListLength(w) ~ xs,
+  r << Add(w, 1);
+
+filterRemainderAppliedPredicate(res, rem, predicate, x, xs) >< True =>
+  ListFilterRemainder(wres, wrem, predicate) ~ xs,
+  res ~ x:wres,
+  rem ~ wrem;
+
+filterRemainderAppliedPredicate(res, rem, predicate, x, xs) >< False =>
+  ListFilterRemainder(wres, wrem, predicate) ~ xs,
+  res ~ wres,
+  rem ~ x:wrem;
+
+ListFilterRemainder(res, rem, predicate) >< [] => res ~ [], rem ~ [], predicate ~ Eraser;
+
+ListFilterRemainder(res, rem, predicate) >< x:xs =>
+  x ~ Dup(x1, x2),
+  predicate ~ Dup(predicate1, predicate2),
+  predicate1 ~ (isTrue, x1),
+  filterRemainderAppliedPredicate(res, rem, predicate2, x2, xs) ~ isTrue;
+
+listContains_check(r, comparer, el, xs) >< False =>
+  listContains_1(r, comparer, el) ~ xs;
+
+listContains_check(r, comparer, el, xs) >< True =>
+  r ~ True,
+  Eraser ~ (comparer, el, xs);
+
+listContains_1(r, comparer, el) >< [] =>
+  r ~ False,
+  Eraser ~ (comparer, el);
+
+listContains_1(r, comparer, el) >< x:xs =>
+  el ~ Dup(el1, el2),
+  comparer ~ Dup(comparer1, comparer2),
+  comparer1 ~ (res, (el1, x)),
+  listContains_check(r, comparer2, el2, xs) ~ res;
+
+ListContains(r, comparer, list) >< el =>
+  listContains_1(r, comparer, el) ~ list;

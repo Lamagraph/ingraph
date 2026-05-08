@@ -1,12 +1,236 @@
 
+eq_2(r, y) >< x => r ~ False, Eraser ~ x, Eraser ~ y;
 
-Add(r, x) >< Z =>
-  r ~ x;
+eq_2(r, int y) >< (int x)
+  | x == y => r ~ True
+  | _ => r ~ False;
 
-Add(r, x) >< S(y) =>
-  Add(w, x) ~ y,
-  r ~ S(w);
+eq_1(r, x) >< int y =>
+  eq_2(r, y) ~ x;
 
-Add(x, S(Z)) ~ Z,
-Add(Add(r, x), S(Z)) ~ Z;
-r; free r;
+// Don't compare anything else
+eq_1(r, x) >< y =>
+  r ~ False,
+  Eraser ~ x,
+  Eraser ~ y;
+
+eq_1(r, x) >< QTreeLeaf(y) =>
+  Eq(r) ~ (y, x);
+
+eq_1(r, x) >< BTreeLeaf(y) =>
+  Eq(r) ~ (y, x);
+
+// Optionals: Some(x), None
+
+isNone(r) >< x => r ~ False, x ~ Eraser;
+isNone(r) >< int x => r ~ False;
+isNone(r) >< None => r ~ True;
+
+isSome(r) >< x => r ~ False, x ~ Eraser;
+isSome(r) >< int x => r ~ False;
+isSome(r) >< Some(xval) => r ~ True, Eraser ~ xval;
+
+isUserValueNone(r) >< x => x ~ Eraser, r ~ False;
+isUserValueNone(r) >< UserValue(v) => isNone(r) ~ v;
+
+eq_1(r, x) >< None => isNone(r) ~ x;
+eq_1(r, x) >< Some(yval) => eq_1(r, yval) ~ x;
+
+// Values: UserValue(val), Dummy
+
+NoToBool(r) >< x => r ~ x;
+NoToBool(r) >< No(x) => Eraser ~ x, r ~ False;
+
+isDummy(r) >< int x => r ~ No(x);
+isDummy(r) >< x => r ~ No(x);
+isDummy(r) >< Dummy => r ~ True;
+
+isDummyBTreeLeaf(r) >< int x => r ~ No(QTreeLeaf(x));
+isDummyBTreeLeaf(r) >< x =>
+  r ~ No(x);
+
+isDummyBTreeLeaf(r) >< True => r ~ (*R)True;
+isDummyBTreeLeaf(r) >< No(x) => r ~ (*R)No(BTreeLeaf(x));
+
+isDummyBTreeLeaf(r) >< BTreeLeaf(val) =>
+  isDummy(w) ~ val,
+  (*L)isDummyBTreeLeaf(r) ~ w;
+
+// Returns: True | No(QTree(...))
+isDummyQTreeLeaf(r) >< int x => r ~ No(QTreeLeaf(x));
+isDummyQTreeLeaf(r) >< x =>
+  r ~ No(x);
+
+isDummyQTreeLeaf(r) >< True => r ~ (*R)True;
+
+isDummyQTreeLeaf(r) >< No(x) => // From leaf val
+  r ~ (*R)No(QTreeLeaf(x));
+isDummyQTreeLeaf(r) >< QTreeLeaf(val) =>
+  isDummy(w) ~ val,
+  (*L)isDummyQTreeLeaf(r) ~ w;
+
+
+orno_2(r, yval) >< No(xval) =>
+  r ~ NoNo(xval, yval);
+
+orno_2(r, yval) >< True =>
+  r ~ True,
+  Eraser ~ yval;
+
+orno_1(r, x) >< No(yval) =>
+  orno_2(r, yval) ~ x;
+
+orno_1(r, x) >< True => r ~ True, x ~ Eraser;
+
+OrNo(r) >< (x, y) =>
+  orno_1(r, x) ~ y;
+
+eq_1(r, x) >< Dummy => isDummy(w) ~ x, NoToBool(r) ~ w;
+eq_1(r, x) >< UserValue(yval) => eq_1(r, yval) ~ x;
+
+Eq(r) >< (x, y) =>
+  eq_1(r, x) ~ y;
+
+
+eqbtree_checkvals(r, xval, yval) >< False =>
+  r ~ BTreeNode(BTreeLeaf(xval), BTreeLeaf(yval));
+
+eqbtree_checkvals(r, xval, yval) >< True =>
+  Eraser ~ yval,
+  r ~ BTreeLeaf(xval);
+
+eqbtree_2(r, yval) >< BTreeLeaf(xval) =>
+  yval ~ Dup(yval1, yval2),
+  xval ~ Dup(xval1, xval2),
+  Eq(areEqual) ~ (xval1, yval1),
+  eqbtree_checkvals(r, xval2, yval2) ~ areEqual;
+
+eqbtree_2(r, yval) >< x =>
+  r ~ BTreeNode(x, BTreeLeaf(yval));
+
+eqbtree_1(r, x) >< BTreeLeaf(yval) =>
+  eqbtree_2(r, yval) ~ x;
+
+eqbtree_1(r, x) >< y =>
+  r ~ BTreeNode(x, y);
+
+// Returns: BTreeLeaf(xval) | BTreeNode(x, y)
+// Literally BTreeMkNode
+EqBTree(r) >< (x, y) =>
+  eqbtree_1(r, x) ~ y;
+
+eqqtree_checkvals(r, t1val, t2val, t3val, t4val) >< False =>
+  r ~ QTreeNode(QTreeLeaf(t1val), QTreeLeaf(t2val), QTreeLeaf(t3val), QTreeLeaf(t4val));
+
+eqqtree_checkvals(r, t1val, t2val, t3val, t4val) >< True =>
+  Eraser ~ (t2val, t3val, t4val),
+  r ~ QTreeLeaf(t1val);
+
+eqqtree_4(r, t1val, t2val, t3val) >< QTreeLeaf(t4val) =>
+  (t1val, t2val, t3val, t4val) ~ Dup((t1val_1, t2val_1, t3val_1, t4val_1), (t1val_2, t2val_t, t3val_t, t4val_2)),
+  (t2val_t, t3val_t) ~ Dup((t2val_2, t3val_2), (t2val_3, t3val_3)),
+  Eq(t1_t2) ~ (t1val_1, t2val_1),
+  Eq(t2_t3) ~ (t2val_2, t3val_1),
+  Eq(t3_t4) ~ (t3val_2, t4val_1),
+  And3(areEqual) ~ (t1_t2, t2_t3, t3_t4),
+  eqqtree_checkvals(r, t1val_2, t2val_3, t3val_3, t4val_2) ~ areEqual;
+
+eqqtree_4(r, t1val, t2val, t3val) >< t4 =>
+  r ~ QTreeNode(QTreeLeaf(t1val), QTreeLeaf(t2val), QTreeLeaf(t3val), t4);
+
+eqqtree_3(r, t1val, t2val, t4) >< QTreeLeaf(t3val) =>
+  eqqtree_4(r, t1val, t2val, t3val) ~ t4;
+
+eqqtree_3(r, t1val, t2val, t4) >< t3 =>
+  r ~ QTreeNode(QTreeLeaf(t1val), QTreeLeaf(t2val), t3, t4);
+
+eqqtree_2(r, t1val, t3, t4) >< QTreeLeaf(t2val) =>
+  eqqtree_3(r, t1val, t2val, t4) ~ t3;
+
+eqqtree_2(r, t1val, t3, t4) >< t2 =>
+  r ~ QTreeNode(QTreeLeaf(t1val), t2, t3, t4);
+
+eqqtree_1(r, t2, t3, t4) >< QTreeLeaf(t1val) =>
+  eqqtree_2(r, t1val, t3, t4) ~ t2;
+
+eqqtree_1(r, t2, t3, t4) >< t1 =>
+  r ~ QTreeNode(t1, t2, t3, t4);
+
+// Returns: QTreeLeaf(t1val) | QTreeNode(t1, t2, t3, t4)
+// Literally QTreeMkNode
+EqQTree4(r) >< (t1, t2, t3, t4) =>
+  eqqtree_1(r, t2, t3, t4) ~ t1;
+
+and_1(r, a) >< False => r ~ False, Eraser ~ a;
+
+and_1(r, a) >< True =>
+  r ~ a;
+
+And(r) >< (a, b) => and_1(r, a) ~ b;
+
+And3(r) >< (a, b, c) =>
+  And(ab) ~ (a, b),
+  And(r) ~ (ab, c);
+
+And4(r) >< (a, b, c, d) =>
+  And(ab) ~ (a, b),
+  And(cd) ~ (c, d),
+  And(r) ~ (ab, cd);
+
+or_1(r, a) >< False => r ~ a;
+or_1(r, a) >< True => r ~ True, a ~ Eraser;
+
+Or(r) >< (a, b) => or_1(r, a) ~ b;
+
+Or3(r) >< (a, b, c) =>
+  Or(ab) ~ (a, b),
+  Or(r) ~ (ab, c);
+
+less_2(r, y) >< x => r ~ False, (y, x) ~ Eraser;
+
+less_2(r, int y) >< int x
+  | x < y => r ~ True
+  | _ => r ~ False;
+
+less_1(r, x) >< y => r ~ False, (x, y) ~ Eraser;
+
+less_1(r, x) >< int y =>
+  less_2(r, y) ~ x;
+
+Less(r) >< (x,y) => less_1(r, x) ~ y;
+
+leq_2(r, y) >< x => r ~ False, (y, x) ~ Eraser;
+
+leq_2(r, int y) >< int x
+  | x <= y => r ~ True
+  | _ => r ~ False;
+
+leq_1(r,x) >< y => r ~ False, (x, y) ~ Eraser;
+leq_1(r, x) >< int y =>
+  leq_2(r, y) ~ x;
+
+Leq(r) >< (x, y) => leq_1(r, x) ~ y;
+
+min_2(r, int y) >< int x
+  | x < y => r ~ x
+  | _     => r ~ y;
+
+min_1(r, x) >< int y =>
+  min_2(r, y) ~ x;
+
+Min(r) >< (x, y) => min_1(r, x) ~ y;
+
+min_destr_2(r, int y) >< int x
+  | x < y => r ~ Some(x)
+  | _     => r ~ None;
+
+min_destr_1(r, x) >< int y =>
+  min_destr_2(r, y) ~ x;
+
+MinDestr(r) >< (x, y) => min_destr_1(r, x) ~ y;
+
+Not(r) >< False =>
+  r ~ True;
+
+Not(r) >< True =>
+  r ~ False;

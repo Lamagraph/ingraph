@@ -1,41 +1,72 @@
+use "./src/eq.in";
+use "./src/list.in";
+
+
+listfilterverts_comparer(r) >< (el, x) =>
+  x ~ (v, level),
+  Eraser ~ level,
+  Eq(r) ~ (el, v);
+
+// Should return vertices in ys that are not present in xs
+// What a beautiful interaction rule
+ListFilterVerts(r, xs) >< ys =>
+  Not(not_w) ~ w,
+  ListFilter(r, (not_w, ListContains(w, %listfilterverts_comparer, xs))) ~ ys;
+
+ListConcat(r, ys) >< x:xs =>
+  ListConcat(r, x:ys) ~ xs;
+
+ListConcat(r, ys) >< [] =>
+  r ~ ys;
+
 findvert_decons_check(r, rvisited, visited, v, connected_to) >< False =>
   finvert_1(r, rvisited, v) ~ visited,
   Eraser ~ connected_to;
 
 findvert_decons_check(r, rvisited, visited, v, connected_to) >< True =>
-  r ~ (v, connected_to),
-  ListConcat(rvisited, visited),
+  r ~ (v, connected_to, wvisited),
+  ListConcat(wvisited, rvisited) ~ visited;
 
 findvert_decons(r, rvisited, v, visited) >< (j, connected_to) =>
   Dup(v1, v2) ~ v,
   Eq(are_eq) ~ (v1, j),
   findvert_decons_check(r, rvisited, visited, v2, connected_to) ~ are_eq;
 
+findvert_1(r, rvisited, v) >< [] =>
+  r ~ VertexIsNotInTheList,
+  Eraser ~ (rvisited, v);
+
 findvert_1(r, rvisited, v) >< x:visited =>
   Dup(x1, x2) ~ x,
   findvert_decons(r, x1:rvisited, v, visited) ~ x2;
 
-ListFindVert(r, visited, rvisited) >< int v =>
-  findvert_1(r, rvisited, v) ~ visited;
+// Returns (vert, connected_to, rvisited)
+ListFindVert(r, visited) >< int v =>
+  findvert_1(r, [], v) ~ visited;
 
 // ListFindVert(r, visiter, visited_return) >< int v; returns () if not found or (v, connected_to)
 
 bfs_3(r, graph, level, visited, old_frontier, new_frontier) >< [] =>
-  bfs_1(r, graph, level, visited) ~ old_frontier;
+  bfs_1(r, graph, level, visited, new_frontier) ~ old_frontier;
 
-bfs_3(r, graph, int level, visited, old_frontier, x:new_frontier) >< int x:xs =>
-  (*L)bfs_3(r, graph, level, (x, level):visited, old_frontier) ~ xs;
+bfs_3(r, graph, int level, visited, old_frontier, new_frontier) >< int x:xs =>
+  w ~ (x, level):visited,
+  bfs_3(r, graph, level, w, old_frontier, new_frontier) ~ xs;
 
 bfs_2(r, graph, level, visited, old_frontier, new_frontier) >< (v, connected_to) =>
-  ListFilterVerts(filtered, visited, visited_1) ~ connected_to,
-  bfs_3(r, graph, level, visited_1, old_frontier, new_frontier) ~ filtered;
+  visited ~ Dup(visited_1, visited_2),
+  ListFilterVerts(fullfiltered, visited_1) ~ connected_to,
+  fullfiltered ~ filtered,
+  Eraser ~ v,
+  bfs_3(r, graph, level, visited_2, old_frontier, new_frontier) ~ filtered;
 
 bfs_1(r, graph, level, visited, new_frontier) >< [] =>
-  r ~ visited,
-  Eraser ~ (graph, level);
+  bfs_check_frontier(r, graph, level, visited) ~ new_frontier;
 
 bfs_1(r, graph, level, visited, new_frontier) >< v:old_frontier =>
-  ListFindVert(vert, graph, graph_1) ~ v,
+  ListFindVert(vertfull, graph) ~ v,
+  vertfull ~ (v_1, connected_to, graph_1),
+  vert ~ (v_1, connected_to),
   bfs_2(r, graph_1, level, visited, old_frontier, new_frontier) ~ vert;
 
 bfs_check_frontier(r, graph, level, visited) >< [] =>
@@ -44,7 +75,7 @@ bfs_check_frontier(r, graph, level, visited) >< [] =>
 
 bfs_check_frontier(r, graph, level, visited) >< xs =>
   new_level << Add(level, 1),
-  bfs_1(r, graph, new_level, visited) ~ xs;
+  bfs_1(r, graph, new_level, visited, []) ~ xs;
 
 bfs(r) >< (graph, startVertex) =>
-  bfs_1(r, graph, 1, []) ~ [startVertex];
+  bfs_1(r, graph, 1, [], []) ~ [startVertex];
