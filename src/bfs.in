@@ -7,11 +7,25 @@ listfilterverts_comparer(r) >< (el, x) =>
   Eraser ~ level,
   Eq(r) ~ (el, v);
 
+
+listFilterVerts_check(r, rxs, y, ys, xs) >< False =>
+  r ~ y:w,
+  ListFilterVerts(w, rxs, xs) ~ ys;
+
+listFilterVerts_check(r, rxs, y, ys, xs) >< True =>
+  y ~ Eraser,
+  ListFilterVerts(r, rxs, xs) ~ ys;
+
+ListFilterVerts(r, rxs, xs) >< [] =>
+  xs ~ rxs,
+  r ~ [];
+
 // Should return vertices in ys that are not present in xs
 // What a beautiful interaction rule
-ListFilterVerts(r, xs) >< ys =>
-  Not(not_w) ~ w,
-  ListFilter(r, (not_w, ListContains(w, %listfilterverts_comparer, xs))) ~ ys;
+ListFilterVerts(r, rxs, xs) >< y:ys =>
+  y ~ Dup(y1, y2),
+  ListContainsRet(contains, wxs) ~ (%listfilterverts_comparer, xs, y1),
+  listFilterVerts_check(r, rxs, y2, ys, wxs) ~ contains;
 
 ListConcat(r, ys) >< x:xs =>
   ListConcat(r, x:ys) ~ xs;
@@ -56,9 +70,7 @@ bfs_3(r, graph, level, visited, old_frontier, new_frontier) >< x:xs =>
   bfs_3(r, graph, level2, w, old_frontier, x2:new_frontier) ~ xs;
 
 bfs_2(r, graph, level, visited, old_frontier, new_frontier) >< (v, connected_to) =>
-  visited ~ Dup(visited_1, visited_2),
-  ListFilterVerts(fullfiltered, visited_1) ~ connected_to,
-  fullfiltered ~ filtered,
+  ListFilterVerts(filtered, visited_2, visited) ~ connected_to,
   Eraser ~ v,
   bfs_3(r, graph, level, visited_2, old_frontier, new_frontier) ~ filtered;
 

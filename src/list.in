@@ -1,7 +1,10 @@
 
-filterAppliedPredicate(r, predicate, x, xs) >< True => r ~ x:ws,
+filterAppliedPredicate(r, predicate, x, xs) >< True => 
+  r ~ x:ws,
   ListFilter(ws, predicate) ~ xs;
-filterAppliedPredicate(r, predicate, x, xs) >< False => r ~ ws, x ~ Eraser,
+filterAppliedPredicate(r, predicate, x, xs) >< False =>
+  r ~ ws, 
+  x ~ Eraser,
   ListFilter(ws, predicate) ~ xs;
 
 
@@ -21,14 +24,20 @@ ListLength(r) >< x:xs =>
 
 filterRemainderAppliedPredicate(res, rem, predicate, x, xs) >< True =>
   ListFilterRemainder(wres, wrem, predicate) ~ xs,
-  res ~ x:wres,
-  rem ~ wrem;
+  // !!!
+  x ~ Dup(x1, x2),
+  res ~ x1:wres,
+  rem ~ x2:wrem;
 
 filterRemainderAppliedPredicate(res, rem, predicate, x, xs) >< False =>
   ListFilterRemainder(wres, wrem, predicate) ~ xs,
   res ~ wres,
   rem ~ x:wrem;
 
+
+// This ListFilterRemainder is different from QTreeInpla's
+// as it does not return remainder, but rather the whole 
+// original list.
 ListFilterRemainder(res, rem, predicate) >< [] => res ~ [], rem ~ [], predicate ~ Eraser;
 
 ListFilterRemainder(res, rem, predicate) >< x:xs =>
@@ -60,6 +69,30 @@ ListContains(r, comparer, list) >< el =>
 
 ListContains(r, comparer, list) >< int el =>
   listContains_1(r, comparer, el) ~ list;
+
+listContainsRet_check(r, rxs, comparer, el, xs) >< False =>
+  listContainsRet_1(r, rxs, comparer, el) ~ xs;
+
+listContainsRet_check(r, rxs, comparer, el, xs) >< True =>
+  r ~ True,
+  rxs ~ xs,
+  Eraser ~ (el, comparer);
+
+listContainsRet_1(r, rxs, comparer, el) >< [] =>
+  r ~ False,
+  rxs ~ [],
+  Eraser ~ (comparer, el);
+
+listContainsRet_1(r, rxs, comparer, el) >< x:xs =>
+  el ~ Dup(el1, el2),
+  x ~ Dup(x1, x2),
+  comparer ~ Dup(comparer1, comparer2),
+  comparer1 ~ (res, (el1, x1)),
+  rxs ~ x2:wxs,
+  listContainsRet_check(r, wxs, comparer2, el2, xs) ~ res;
+
+ListContainsRet(r, rxs) >< (comparer, list, el) =>
+  listContainsRet_1(r, rxs, comparer, el) ~ list;
 
 
 msort(ret, comparer) >< [] => ret~[], comparer ~ Eraser;
