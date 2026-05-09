@@ -1,6 +1,9 @@
 use "./src/bfs.in";
 
-graph ~ [(1, [2, 3]), (2, [1]), (3, [1, 4]), (4, [3])];
+graph ~ [(1, [2, 3]), (2, [1, 5]), (3, [1, 4, 5]), (4, [3, 5]), (5, [2, 3, 4])];
 const StartVertex = 1;
 bfs(r) ~ (graph, StartVertex);
-r; free r;
+
+msort(rsorted, %fst_comparer) ~ r;
+
+rsorted; free ifce;

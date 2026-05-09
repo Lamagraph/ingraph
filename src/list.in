@@ -56,3 +56,53 @@ listContains_1(r, comparer, el) >< x:xs =>
 
 ListContains(r, comparer, list) >< el =>
   listContains_1(r, comparer, el) ~ list;
+
+
+ListContains(r, comparer, list) >< int el =>
+  listContains_1(r, comparer, el) ~ list;
+
+
+msort(ret, comparer) >< [] => ret~[], comparer ~ Eraser;
+msort(ret, comparer) >< x:xs => msort_tail(ret, comparer, x)~xs;
+
+msort_tail(ret, comparer, n) >< [] => ret~[n], comparer ~ Eraser;
+msort_tail(ret, comparer, n) >< x:xs => 
+	split(left,right) ~ (n:x:xs),
+  comparer ~ Dup(comparer1, comparert),
+  comparert ~ Dup(comparer2, comparer3),
+	msort(a, comparer1)~left, msort(b, comparer2)~right, merge(ret, comparer3, b)~a;
+
+merge(ret, comparer, snd) >< [] => ret~snd, comparer ~ Eraser;
+merge(ret, comparer, snd) >< x:xs => mergeCC(ret, comparer, x, xs)~snd;
+
+mergeCC(ret, comparer, y, ys) >< [] => ret~(y:ys), comparer ~ Eraser;
+mergeCC(ret, comparer, y, ys) >< x:xs =>
+  comparer ~ Dup(comparer1, comparer2),
+  x ~ Dup(x1, x2),
+  y ~ Dup(y1, y2),
+  comparer1 ~ (cmp_res, (x1, y1)),
+  mergeCC_compare(ret, comparer2, y2, ys, x2, xs) ~ cmp_res;
+
+mergeCC_compare(ret, comparer, y, ys, x, xs) >< True =>
+  ret ~ x:cnt,
+  mergeCC(cnt, comparer, y, ys) ~ xs;
+
+mergeCC_compare(ret, comparer, y, ys, x, xs) >< False =>
+  ret ~ y:cnt,
+  mergeCC(cnt, comparer, x, xs) ~ ys;
+
+split(right,left) >< [] => right~[], left~[];
+split(right,left) >< x:xs =>
+	right~(x:cntl), left~cntr, split(cntr,cntl)~xs;
+
+
+fst_comparer_2(r, yfst) >< (xfst, xsnd) =>
+  Eraser ~ xsnd,
+  Less(r) ~ (xfst, yfst);
+
+fst_comparer_1(r, x) >< (yfst, ysnd) =>
+  Eraser ~ ysnd,
+  fst_comparer_2(r, yfst) ~ x;
+
+fst_comparer(r) >< (x, y) =>
+  fst_comparer_1(r, x) ~ y;
